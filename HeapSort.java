@@ -1,14 +1,3 @@
-/*
-*  *
-* Use Java-14 To run 😎
-* This is Generic Heap Sort Program demostrate -
-*   Integer Heap Sort
-*   Character Heap Sort
-*   Double Heap Sort
-*   String Heap Sort
-* */
-
-// Heap Sort Class using T data type as place holder and extends Comparable Class to compare two generic class
 public class HeapSort<T extends Comparable<T>> {
 
     private T data[];
