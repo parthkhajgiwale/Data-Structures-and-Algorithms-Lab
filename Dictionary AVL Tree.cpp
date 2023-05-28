@@ -5,341 +5,355 @@ Use Height balance tree and find the complexity for finding a keyword.*/
 
 #include<iostream>
 #include<string>
-#include<algorithm>
 using namespace std;
 
-class Node {
-public:
+struct DictionaryEntry {
     string keyword;
     string meaning;
-    int height;
+};
+
+struct Node {
+    DictionaryEntry entry;
     Node* left;
     Node* right;
+    int height;
 };
 
 class AVLTree {
+private:
     Node* root;
 
+    int getHeight(Node* node);
+    int getBalanceFactor(Node* node);
+    Node* rotateLeft(Node* node);
+    Node* rotateRight(Node* node);
+    Node* insertNode(Node* node, DictionaryEntry entry);
+    Node* deleteNode(Node* node, string keyword);
+    Node* findMinValueNode(Node* node);
+    Node* searchNode(Node* node, string keyword);
+    void displayAscendingOrder(Node* node);
+    void displayDescendingOrder(Node* node);
+    int getMaxComparisons(Node* node, string keyword, int comparisons);
+
 public:
-    AVLTree() {
-        root = nullptr;
-    }
+    AVLTree();
+    void addEntry(string keyword, string meaning);
+    void deleteEntry(string keyword);
+    void updateEntry(string keyword, string newMeaning);
+    void displayAscending();
+    void displayDescending();
+    int findMaxComparisons(string keyword);
+};
 
-    int max(int a, int b) {
-        return (a > b) ? a : b;
-    }
+AVLTree::AVLTree() {
+    root = nullptr;
+}
 
-    int getHeight(Node* node) {
-        if (node == nullptr)
-            return 0;
-        return node->height;
-    }
+int AVLTree::getHeight(Node* node) {
+    if (node == nullptr)
+        return 0;
+    return node->height;
+}
 
-    int getBalance(Node* node) {
-        if (node == nullptr)
-            return 0;
-        return getHeight(node->left) - getHeight(node->right);
-    }
+int AVLTree::getBalanceFactor(Node* node) {
+    if (node == nullptr)
+        return 0;
+    return getHeight(node->left) - getHeight(node->right);
+}
 
-    Node* createNode(string keyword, string meaning) {
-        Node* newNode = new Node();
-        newNode->keyword = keyword;
-        newNode->meaning = meaning;
+Node* AVLTree::rotateLeft(Node* node) {
+    Node* newRoot = node->right;
+    Node* temp = newRoot->left;
+
+    newRoot->left = node;
+    node->right = temp;
+
+    node->height = max(getHeight(node->left), getHeight(node->right)) + 1;
+    newRoot->height = max(getHeight(newRoot->left), getHeight(newRoot->right)) + 1;
+
+    return newRoot;
+}
+
+Node* AVLTree::rotateRight(Node* node) {
+    Node* newRoot = node->left;
+    Node* temp = newRoot->right;
+
+    newRoot->right = node;
+    node->left = temp;
+
+    node->height = max(getHeight(node->left), getHeight(node->right)) + 1;
+    newRoot->height = max(getHeight(newRoot->left), getHeight(newRoot->right)) + 1;
+
+    return newRoot;
+}
+
+Node* AVLTree::insertNode(Node* node, DictionaryEntry entry) {
+    if (node == nullptr) {
+        Node* newNode = new Node;
+        newNode->entry = entry;
         newNode->left = nullptr;
         newNode->right = nullptr;
         newNode->height = 1;
         return newNode;
     }
 
-    Node* rotateLeft(Node* node) {
-        Node* rightChild = node->right;
-        Node* leftGrandchild = rightChild->left;
+    if (entry.keyword < node->entry.keyword)
+        node->left = insertNode(node->left, entry);
+    else if (entry.keyword > node->entry.keyword)
+        node->right = insertNode(node->right, entry);
+    else
+        return node; // Duplicate keywords are not allowed
 
-        rightChild->left = node;
-        node->right = leftGrandchild;
+    node->height = 1 + max(getHeight(node->left), getHeight(node->right));
 
-        node->height = 1 + max(getHeight(node->left), getHeight(node->right));
-        rightChild->height = 1 + max(getHeight(rightChild->left), getHeight(rightChild->right));
+    int balanceFactor = getBalanceFactor(node);
 
-        return rightChild;
+    // Left-Left case
+    if (balanceFactor > 1 && entry.keyword < node->left->entry.keyword)
+        return rotateRight(node);
+
+    // Right-Right case
+    if (balanceFactor < -1 && entry.keyword > node->right->entry.keyword)
+        return rotateLeft(node);
+
+    // Left-Right case
+    if (balanceFactor > 1 && entry.keyword > node->left->entry.keyword) {
+        node->left = rotateLeft(node->left);
+        return rotateRight(node);
     }
 
-    Node* rotateRight(Node* node) {
-        Node* leftChild = node->left;
-        Node* rightGrandchild = leftChild->right;
-
-        leftChild->right = node;
-        node->left = rightGrandchild;
-
-        node->height = 1 + max(getHeight(node->left), getHeight(node->right));
-        leftChild->height = 1 + max(getHeight(leftChild->left), getHeight(leftChild->right));
-
-        return leftChild;
+    // Right-Left case
+    if (balanceFactor < -1 && entry.keyword < node->right->entry.keyword) {
+        node->right = rotateRight(node->right);
+        return rotateLeft(node);
     }
 
-    Node* insertNode(Node* node, string keyword, string meaning) {
-        if (node == nullptr)
-            return createNode(keyword, meaning);
+    return node;
+}
 
-        if (keyword < node->keyword)
-            node->left = insertNode(node->left, keyword, meaning);
-        else if (keyword > node->keyword)
-            node->right = insertNode(node->right, keyword, meaning);
-        else {
-            cout << "Keyword already exists. Updating meaning..." << endl;
-            node->meaning = meaning;
-            return node;
-        }
-
-        node->height = 1 + max(getHeight(node->left), getHeight(node->right));
-
-        int balance = getBalance(node);
-
-        // Left-Left Case
-        if (balance > 1 && keyword < node->left->keyword)
-            return rotateRight(node);
-
-        // Right-Right Case
-        if (balance < -1 && keyword > node->right->keyword)
-            return rotateLeft(node);
-
-        // Left-Right Case
-        if (balance > 1 && keyword > node->left->keyword) {
-            node->left = rotateLeft(node->left);
-            return rotateRight(node);
-        }
-
-        // Right-Left Case
-        if (balance < -1 && keyword < node->right->keyword) {
-            node->right = rotateRight(node->right);
-            return rotateLeft(node);
-        }
-
+Node* AVLTree::deleteNode(Node* node, string keyword) {
+    if (node == nullptr)
         return node;
-    }
 
-    Node* minValueNode(Node* node) {
-        Node* current = node;
-        while (current->left != nullptr)
-            current = current->left;
-        return current;
-    }
-
-    Node* deleteNode(Node* node, string keyword) {
-        if (node == nullptr)
-            return node;
-
-        if (keyword < node->keyword)
-            node->left = deleteNode(node->left, keyword);
-        else if (keyword > node->keyword)
-            node->right = deleteNode(node->right, keyword);
+    if (keyword < node->entry.keyword)
+        node->left = deleteNode(node->left, keyword);
+    else if (keyword > node->entry.keyword)
+        node->right = deleteNode(node->right, keyword);
+    else {
+        if (node->left == nullptr || node->right == nullptr) {
+            Node* temp = (node->left != nullptr) ? node->left : node->right;
+            if (temp == nullptr) {
+                temp = node;
+                node = nullptr;
+            }
+            else
+                *node = *temp;
+            delete temp;
+        }
         else {
-            if (node->left == nullptr || node->right == nullptr) {
-                Node* temp = node->left ? node->left : node->right;
-                if (temp == nullptr) {
-                    temp = node;
-                    node = nullptr;
-                }
-                else
-                    *node = *temp;
-                delete temp;
-            }
-            else {
-                Node* temp = minValueNode(node->right);
-                node->keyword = temp->keyword;
-                node->meaning = temp->meaning;
-                node->right = deleteNode(node->right, temp->keyword);
-            }
+            Node* temp = findMinValueNode(node->right);
+            node->entry = temp->entry;
+            node->right = deleteNode(node->right, temp->entry.keyword);
         }
+    }
 
-        if (node == nullptr)
-            return node;
-
-        node->height = 1 + max(getHeight(node->left), getHeight(node->right));
-
-        int balance = getBalance(node);
-
-        // Left-Left Case
-        if (balance > 1 && getBalance(node->left) >= 0)
-            return rotateRight(node);
-
-        // Left-Right Case
-        if (balance > 1 && getBalance(node->left) < 0) {
-            node->left = rotateLeft(node->left);
-            return rotateRight(node);
-        }
-
-        // Right-Right Case
-        if (balance < -1 && getBalance(node->right) <= 0)
-            return rotateLeft(node);
-
-        // Right-Left Case
-        if (balance < -1 && getBalance(node->right) > 0) {
-            node->right = rotateRight(node->right);
-            return rotateLeft(node);
-        }
-
+    if (node == nullptr)
         return node;
+
+    node->height = 1 + max(getHeight(node->left), getHeight(node->right));
+
+    int balanceFactor = getBalanceFactor(node);
+
+    // Left-Left case
+    if (balanceFactor > 1 && getBalanceFactor(node->left) >= 0)
+        return rotateRight(node);
+
+    // Left-Right case
+    if (balanceFactor > 1 && getBalanceFactor(node->left) < 0) {
+        node->left = rotateLeft(node->left);
+        return rotateRight(node);
     }
 
-    Node* searchKeyword(Node* node, string keyword, int& comparisons) {
-        if (node == nullptr)
-            return nullptr;
+    // Right-Right case
+    if (balanceFactor < -1 && getBalanceFactor(node->right) <= 0)
+        return rotateLeft(node);
 
-        comparisons++;
-        if (keyword == node->keyword)
-            return node;
-        else if (keyword < node->keyword)
-            return searchKeyword(node->left, keyword, comparisons);
-        else
-            return searchKeyword(node->right, keyword, comparisons);
+    // Right-Left case
+    if (balanceFactor < -1 && getBalanceFactor(node->right) > 0) {
+        node->right = rotateRight(node->right);
+        return rotateLeft(node);
     }
 
-    void displayInOrder(Node* node) {
-        if (node != nullptr) {
-            displayInOrder(node->left);
-            cout << node->keyword << ": " << node->meaning << endl;
-            displayInOrder(node->right);
-        }
+    return node;
+}
+
+Node* AVLTree::findMinValueNode(Node* node) {
+    Node* current = node;
+    while (current->left != nullptr)
+        current = current->left;
+    return current;
+}
+
+Node* AVLTree::searchNode(Node* node, string keyword) {
+    if (node == nullptr || node->entry.keyword == keyword)
+        return node;
+
+    if (keyword < node->entry.keyword)
+        return searchNode(node->left, keyword);
+
+    return searchNode(node->right, keyword);
+}
+
+void AVLTree::displayAscendingOrder(Node* node) {
+    if (node != nullptr) {
+        displayAscendingOrder(node->left);
+        cout << "Keyword: " << node->entry.keyword << ", Meaning: " << node->entry.meaning << endl;
+        displayAscendingOrder(node->right);
     }
+}
 
-    void displayPreOrder(Node* node) {
-        if (node != nullptr) {
-            cout << node->keyword << ": " << node->meaning << endl;
-            displayPreOrder(node->left);
-            displayPreOrder(node->right);
-        }
+void AVLTree::displayDescendingOrder(Node* node) {
+    if (node != nullptr) {
+        displayDescendingOrder(node->right);
+        cout << "Keyword: " << node->entry.keyword << ", Meaning: " << node->entry.meaning << endl;
+        displayDescendingOrder(node->left);
     }
+}
 
-    void displayPostOrder(Node* node) {
-        if (node != nullptr) {
-            displayPostOrder(node->left);
-            displayPostOrder(node->right);
-            cout << node->keyword << ": " << node->meaning << endl;
-        }
+int AVLTree::getMaxComparisons(Node* node, string keyword, int comparisons) {
+    if (node == nullptr)
+        return comparisons;
+
+    if (keyword < node->entry.keyword)
+        return getMaxComparisons(node->left, keyword, comparisons + 1);
+
+    if (keyword > node->entry.keyword)
+        return getMaxComparisons(node->right, keyword, comparisons + 1);
+
+    return comparisons + 1;
+}
+
+void AVLTree::addEntry(string keyword, string meaning) {
+    DictionaryEntry entry;
+    entry.keyword = keyword;
+    entry.meaning = meaning;
+    root = insertNode(root, entry);
+    cout << "Entry added successfully!" << endl;
+}
+
+void AVLTree::deleteEntry(string keyword) {
+    root = deleteNode(root, keyword);
+    cout << "Entry deleted successfully!" << endl;
+}
+
+void AVLTree::updateEntry(string keyword, string newMeaning) {
+    Node* node = searchNode(root, keyword);
+    if (node != nullptr) {
+        node->entry.meaning = newMeaning;
+        cout << "Entry updated successfully!" << endl;
     }
-
-    void displayAscending() {
-        cout << "Dictionary data sorted in ascending order:" << endl;
-        displayInOrder(root);
+    else {
+        cout << "Keyword not found!" << endl;
     }
+}
 
-    void displayDescending() {
-        cout << "Dictionary data sorted in descending order:" << endl;
-        displayPostOrder(root);
+void AVLTree::displayAscending() {
+    displayAscendingOrder(root);
+}
+
+void AVLTree::displayDescending() {
+    displayDescendingOrder(root);
+}
+
+int AVLTree::findMaxComparisons(string keyword) {
+    Node* node = searchNode(root, keyword);
+    if (node != nullptr) {
+        int maxComparisons = getMaxComparisons(root, keyword, 0);
+        cout << "Maximum comparisons required: " << maxComparisons << endl;
+        return maxComparisons;
     }
-
-    void addKeyword() {
-        string keyword, meaning;
-        cout << "Enter the keyword: ";
-        cin.ignore();
-        getline(cin, keyword);
-        cout << "Enter the meaning: ";
-        getline(cin, meaning);
-
-        root = insertNode(root, keyword, meaning);
-        cout << "Keyword added successfully!" << endl;
+    else {
+        cout << "Keyword not found!" << endl;
+        return -1;
     }
+}
 
-    void deleteKeyword() {
-        string keyword;
-        cout << "Enter the keyword to delete: ";
-        cin.ignore();
-        getline(cin, keyword);
-
-        root = deleteNode(root, keyword);
-        cout << "Keyword deleted successfully!" << endl;
-    }
-
-    void updateKeyword() {
-        string keyword, newMeaning;
-        cout << "Enter the keyword to update: ";
-        cin.ignore();
-        getline(cin, keyword);
-
-        Node* node = searchKeyword(root, keyword);
-        if (node != nullptr) {
-            cout << "Enter the new meaning: ";
-            getline(cin, newMeaning);
-            node->meaning = newMeaning;
-            cout << "Keyword updated successfully!" << endl;
-        }
-        else {
-            cout << "Keyword not found!" << endl;
-        }
-    }
-
-    void findKeyword() {
-        string keyword;
-        cout << "Enter the keyword to find: ";
-        cin.ignore();
-        getline(cin, keyword);
-
-        int comparisons = 0;
-        Node* node = searchKeyword(root, keyword, comparisons);
-        if (node != nullptr) {
-            cout << "Keyword: " << node->keyword << ", Meaning: " << node->meaning << endl;
-            cout << "Number of comparisons: " << comparisons << endl;
-        }
-        else {
-            cout << "Keyword not found!" << endl;
-        }
-    }
-
-    void displayMenu() {
-        cout << "------- Dictionary Management System -------" << endl;
-        cout << "1. Add Keyword" << endl;
-        cout << "2. Delete Keyword" << endl;
-        cout << "3. Update Keyword" << endl;
-        cout << "4. Display Data Sorted in Ascending Order" << endl;
-        cout << "5. Display Data Sorted in Descending Order" << endl;
-        cout << "6. Find a Keyword" << endl;
-        cout << "0. Exit" << endl;
-        cout << "--------------------------------------------" << endl;
-    }
-
-    void processUserInput() {
-        int choice;
-        do {
-            displayMenu();
-            cout << "Enter your choice: ";
-            cin >> choice;
-
-            switch (choice) {
-                case 1:
-                    addKeyword();
-                    break;
-                case 2:
-                    deleteKeyword();
-                    break;
-                case 3:
-                    updateKeyword();
-                    break;
-                case 4:
-                    displayAscending();
-                    break;
-                case 5:
-                    displayDescending();
-                    break;
-                case 6:
-                    findKeyword();
-                    break;
-                case 0:
-                    cout << "Exiting program. Goodbye!" << endl;
-                    break;
-                default:
-                    cout << "Invalid choice. Please try again." << endl;
-                    break;
-            }
-
-            cout << endl;
-        } while (choice != 0);
-    }
-};
+void printMenu() {
+    cout << "\n------ Dictionary Menu ------" << endl;
+    cout << "1. Add Entry" << endl;
+    cout << "2. Delete Entry" << endl;
+    cout << "3. Update Entry" << endl;
+    cout << "4. Display Ascending Order" << endl;
+    cout << "5. Display Descending Order" << endl;
+    cout << "6. Find Maximum Comparisons for a Keyword" << endl;
+    cout << "7. Exit" << endl;
+    cout << "-----------------------------" << endl;
+    cout << "Enter your choice: ";
+}
 
 int main() {
     AVLTree dictionary;
-    dictionary.processUserInput();
+    int choice;
+    string keyword, meaning;
+
+    do {
+        printMenu();
+        cin >> choice;
+
+        switch (choice) {
+        case 1:
+            cout << "Enter keyword: ";
+            cin.ignore();
+            getline(cin, keyword);
+            cout << "Enter meaning: ";
+            getline(cin, meaning);
+            dictionary.addEntry(keyword, meaning);
+            break;
+
+        case 2:
+            cout << "Enter keyword to delete: ";
+            cin.ignore();
+            getline(cin, keyword);
+            dictionary.deleteEntry(keyword);
+            break;
+
+        case 3:
+            cout << "Enter keyword to update: ";
+            cin.ignore();
+            getline(cin, keyword);
+            cout << "Enter new meaning: ";
+            getline(cin, meaning);
+            dictionary.updateEntry(keyword, meaning);
+            break;
+
+        case 4:
+            cout << "\nDictionary Entries in Ascending Order:" << endl;
+            dictionary.displayAscending();
+            break;
+
+        case 5:
+            cout << "\nDictionary Entries in Descending Order:" << endl;
+            dictionary.displayDescending();
+            break;
+
+        case 6:
+            cout << "Enter keyword to find maximum comparisons: ";
+            cin.ignore();
+            getline(cin, keyword);
+            dictionary.findMaxComparisons(keyword);
+            break;
+
+        case 7:
+            cout << "Exiting program..." << endl;
+            break;
+
+        default:
+            cout << "Invalid choice! Please try again." << endl;
+            break;
+        }
+
+        cout << endl;
+    } while (choice != 7);
 
     return 0;
 }
