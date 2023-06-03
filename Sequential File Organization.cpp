@@ -1,13 +1,10 @@
-/* Department maintains a student information. The file contains roll number, name, division 
-and address. Allow user to add, delete information of student. Display information of 
-particular employee. If record of student does not exist an appropriate message is displayed.
-If it is, then the system displays the student details. Use sequential file to main the data. */
 #include <iostream>
 #include <fstream>
 #include <string>
 
 using namespace std;
 
+// Structure to hold student information
 struct Student {
     int rollNumber;
     string name;
@@ -15,82 +12,69 @@ struct Student {
     string address;
 };
 
+// Function to add a new student record
 void addStudent() {
-    ofstream file("student_info.txt", ios::app);
-    if (!file.is_open()) {
-        cout << "Error opening file." << endl;
-        return;
-    }
+    ofstream file("students.txt", ios::app); // Open the file in append mode
 
     Student student;
 
     cout << "Enter Roll Number: ";
     cin >> student.rollNumber;
     cout << "Enter Name: ";
-    cin.ignore();
+    cin.ignore(); // Ignore the newline character from previous input
     getline(cin, student.name);
     cout << "Enter Division: ";
     getline(cin, student.division);
     cout << "Enter Address: ";
     getline(cin, student.address);
 
-    file << student.rollNumber << "," << student.name << "," << student.division << "," << student.address << endl;
-    file.close();
+    // Write the student record to the file
+    file << student.rollNumber << " " << student.name << " " << student.division << " " << student.address << endl;
 
-    cout << "Student information added successfully." << endl;
+    file.close();
+    cout << "Student information added successfully!" << endl;
 }
 
+// Function to delete a student record
 void deleteStudent() {
-    ifstream inputFile("student_info.txt");
-    if (!inputFile.is_open()) {
-        cout << "Error opening file." << endl;
-        return;
-    }
-
-    ofstream tempFile("temp.txt");
-    if (!tempFile.is_open()) {
-        cout << "Error opening temporary file." << endl;
-        inputFile.close();
-        return;
-    }
+    ifstream file("students.txt"); // Open the file for reading
+    ofstream tempFile("temp.txt"); // Open a temporary file for writing
 
     int rollNumber;
-    cout << "Enter Roll Number of student to delete: ";
+    cout << "Enter Roll Number of the student to be deleted: ";
     cin >> rollNumber;
 
     bool found = false;
     Student student;
 
-    while (inputFile >> student.rollNumber >> student.name >> student.division >> student.address) {
+    while (file >> student.rollNumber >> student.name >> student.division >> student.address) {
         if (student.rollNumber != rollNumber) {
-            tempFile << student.rollNumber << "," << student.name << "," << student.division << "," << student.address << endl;
+            // Write the non-matching student record to the temporary file
+            tempFile << student.rollNumber << " " << student.name << " " << student.division << " " << student.address << endl;
         } else {
             found = true;
         }
     }
 
-    inputFile.close();
+    file.close();
     tempFile.close();
 
     if (found) {
-        remove("student_info.txt");
-        rename("temp.txt", "student_info.txt");
-        cout << "Student information deleted successfully." << endl;
+        remove("students.txt");     // Delete the original file
+        rename("temp.txt", "students.txt"); // Rename the temporary file to the original file name
+        cout << "Student information deleted successfully!" << endl;
     } else {
-        remove("temp.txt");
-        cout << "Student information not found." << endl;
+        remove("temp.txt"); // Delete the temporary file
+        cout << "Student record not found!" << endl;
     }
 }
 
+// Function to display information of a particular student
 void displayStudent() {
-    ifstream file("student_info.txt");
-    if (!file.is_open()) {
-        cout << "Error opening file." << endl;
-        return;
-    }
+    ifstream file("students.txt"); // Open the file for reading
 
     int rollNumber;
-    cout << "Enter Roll Number of student to display: ";
+    cout << "Enter Roll Number of the student to display: ";
     cin >> rollNumber;
 
     bool found = false;
@@ -98,19 +82,19 @@ void displayStudent() {
 
     while (file >> student.rollNumber >> student.name >> student.division >> student.address) {
         if (student.rollNumber == rollNumber) {
+            found = true;
             cout << "Roll Number: " << student.rollNumber << endl;
             cout << "Name: " << student.name << endl;
             cout << "Division: " << student.division << endl;
             cout << "Address: " << student.address << endl;
-            found = true;
-            break;
+            break; // Exit the loop after finding the student record
         }
     }
 
     file.close();
 
     if (!found) {
-        cout << "Student information not found." << endl;
+        cout << "Student record not found!" << endl;
     }
 }
 
@@ -118,15 +102,12 @@ int main() {
     int choice;
 
     while (true) {
-        cout << "------------------------" << endl;
-        cout << "Student Information Menu" << endl;
-        cout << "------------------------" << endl;
+        cout << "------ Student Information System ------" << endl;
         cout << "1. Add Student" << endl;
         cout << "2. Delete Student" << endl;
         cout << "3. Display Student" << endl;
-        cout << "4. Exit" << endl;
-        cout << "------------------------" << endl;
-        cout << "Enter your choice: ";
+        cout << "4. Quit" << endl;
+        cout << "Enter your choice (1-4): ";
         cin >> choice;
 
         switch (choice) {
@@ -140,11 +121,13 @@ int main() {
                 displayStudent();
                 break;
             case 4:
+                cout << "Exiting program..." << endl;
                 return 0;
             default:
-                cout << "Invalid choice. Please try again." << endl;
-                break;
+                cout << "Invalid choice! Please try again." << endl;
         }
+
+        cout << endl;
     }
 
     return 0;
